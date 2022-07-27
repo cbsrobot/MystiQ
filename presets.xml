@@ -558,10 +558,16 @@
               <extension>mov</extension>
               <category>MOV</category>
           </MOV_Youtube>
-
-
-
-
-
-
+          <Davinci-Resolve>
+              <label>ProRes</label>
+              <params>-vcodec prores_ks -qscale 0 -acodec pcm_s16le -ac 1 -ar 22050 </params>
+              <extension>mov</extension>
+              <category>resolve</category>
+          </Davinci-Resolve>
+          <Davinci-Resolve>
+              <label>MPEG4 for Davinci</label>
+              <params>-codec:v mpeg4 -q:v 0 -codec:a pcm_s16le </params>
+              <extension>mov</extension>
+              <category>Resolve</category>
+          </Davinci-Resolve>
 </presets>
