@@ -3,7 +3,7 @@
 pkgname=mystiq
 _pkgname=MystiQ
 pkgver=20.03.23
-pkgrel=4
+pkgrel=5
 pkgdesc="FFmpeg GUI front-end based on Qt5."
 arch=('x86_64')
 url="https://github.com/swl-x/MystiQ/"
