@@ -50,7 +50,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
         
-      - name: publish package
+      - name: publish to github
         shell: bash -O extglob {0}
         run: |
           release=$(find . -name *.zst | cut -d "/" -f2)
@@ -61,7 +61,7 @@ jobs:
           find -iname *$i -exec gh release upload ${release} --repo ${GITHUB_REPOSITORY} --clobber {} \;
           done
           
-      - name: prepare upload
+      - name: prepare upload to bigrepo
         shell: bash
         run: |
           echo "## ssh setup"
@@ -70,33 +70,23 @@ jobs:
           chmod 600 /home/runner/.ssh/github_actions
           ssh-agent -a /tmp/ssh_agent.sock > /dev/null
           
-        ### Tmate ##
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3 
-       
-      #- name: push to bigrepo
-        #shell: bash -O extglob {0}
+      - name: publish to bigrepo
+        shell: bash -O extglob {0}
         #env:
           #SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-        #run: |
-          #echo $PWD
-          #ssh-keyscan -t rsa ${{ secrets.PKGBUILD_HOST }} >> /home/runner/.ssh/known_hosts
-          #echo "${{ secrets.PKGBUILD_KEY }}" >> /home/runner/.ssh/github_actions
-          #ssh-add /home/runner/.ssh/github_actions
-          #for i in .zst .sig .tar; do
-          #rsync -vaPpz -e "ssh -p ${{ secrets.PKGBUILD_PORT }}" $i ${{ secrets.PKGBUILD_USER }}@${{ secrets.PKGBUILD_HOST }}:${{ secrets.PKGBUILD_DIR_TESTING }}
-          #done
-        
-          #rsync -vaPpz --stats -e ssh ./*tar ${{ inputs.bigrepo-target }}
-          #secrets.PKGBUILD_DIR_STABLE  =/PKGstable
-          #secrets.PKGBUILD_DIR_TESTING  =/PGKtesting
-          #secrets.PKGBUILD_HOST  =packagebuild.biglinux.com.br
-          #secrets.PKGBUILD_KEY  =chave
-          #secrets.PKGBUILD_PASS  =senha da chave
-          #secrets.PKGBUILD_PORT  =65222
-          #secrets.PKGBUILD_USER  =big
-        
-        
+        run: |
+          echo "${{ secrets.PKGBUILD_KEY }}" >> /home/runner/.ssh/github_actions
+          eval `ssh-agent -s`
+          ssh-add /home/runner/.ssh/github_actions
+          ssh-keyscan -t rsa -p ${{ secrets.PKGBUILD_PORT }} ${{ secrets.PKGBUILD_HOST }} >> /home/runner/.ssh/known_hosts
+          for i in *.zst *.sig *.tar; do 
+          test -e $i && rsync -vaPpz -e "ssh -p ${{ secrets.PKGBUILD_PORT }}" $i ${{ secrets.PKGBUILD_USER }}@${{ secrets.PKGBUILD_HOST }}:${{ secrets.PKGBUILD_DIR_TESTING }}
+          done
+          exit 0
+          
+        ### Tmate ##
+      #- name: Setup tmate session
+        #uses: mxschmitt/action-tmate@v3 
         
         
 #      - name: upload-cdn77
