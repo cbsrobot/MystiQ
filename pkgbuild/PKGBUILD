@@ -14,6 +14,8 @@ source=("git+https://github.com/biglinux/MystiQ.git")
 sha256sums=(SKIP)
 
 build() {
+echo $PWD
+ls -la
 #   cd ${_pkgname}
   qmake mystiq.pro
   make 
