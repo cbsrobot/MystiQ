@@ -3,7 +3,7 @@
 pkgname=mystiq
 _pkgname=MystiQ
 pkgver=20.03.23
-pkgrel=5
+pkgrel=6
 pkgdesc="FFmpeg GUI front-end based on Qt5."
 arch=('x86_64')
 url="https://github.com/swl-x/MystiQ/"
@@ -14,7 +14,6 @@ source=("git+https://github.com/biglinux/MystiQ.git")
 sha256sums=(SKIP)
 
 build() {
-echo $PWD
 ls -la
   cd ${_pkgname}
   qmake mystiq.pro
