@@ -569,5 +569,5 @@
               <params>-codec:v mpeg4 -q:v 0 -codec:a pcm_s16le </params>
               <extension>mov</extension>
               <category>Resolve</category>
-          </Davinci-Resolve>
+          </Davinci-Resolve-mp4>
 </presets>
