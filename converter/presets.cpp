@@ -22,6 +22,7 @@
 #include <QXmlStreamReader>
 #include <QFile>
 #include <QDebug>
+#include <QRegularExpression>
 
 struct Presets::Private
 {
@@ -156,9 +157,9 @@ void Presets::Private::removeUnavailablePresets()
     if (!FFmpegInterface::getSubtitleEncoders(subtitle_encoders))
         Q_ASSERT(subtitle_encoders.isEmpty());
 
-    QRegExp audio_codec_pattern("-acodec\\s+([^ ]+)");
-    QRegExp video_codec_pattern("-vcodec\\s+([^ ]+)");
-    QRegExp subtitle_codec_pattern("-scodec\\s+([^ ]+)");
+    QRegularExpression audio_codec_pattern("-acodec\\s+([^ ]+)");
+    QRegularExpression video_codec_pattern("-vcodec\\s+([^ ]+)");
+    QRegularExpression subtitle_codec_pattern("-scodec\\s+([^ ]+)");
 
     QMultiMap<QString, Preset>::iterator it = presets.begin();
     while (it!=presets.end()) {
@@ -166,22 +167,25 @@ void Presets::Private::removeUnavailablePresets()
         QString& params = it.value().parameters;
 
         // Check unavailable audio presets
-        if (audio_codec_pattern.indexIn(params) != -1) {
-            if (!audio_encoders.contains(audio_codec_pattern.cap(1))) {
+        auto match = audio_codec_pattern.match(params);
+        if (match.hasMatch()) {
+            if (!audio_encoders.contains(match.captured(1))) {
                 remove = true;
             }
         }
 
         // Check unavailable video presets
-        if (!remove && video_codec_pattern.indexIn(params) != -1) {
-            if (!video_encoders.contains(video_codec_pattern.cap(1))) {
+        match = video_codec_pattern.match(params);
+        if (!remove && match.hasMatch()) {
+            if (!video_encoders.contains(match.captured(1))) {
                 remove = true;
             }
         }
 
         // Check unavailable subtitle presets
-        if (!remove && subtitle_codec_pattern.indexIn(params) != -1) {
-            if (!subtitle_encoders.contains(subtitle_codec_pattern.cap(1))) {
+        match = subtitle_codec_pattern.match(params);
+        if (!remove && match.hasMatch()) {
+            if (!subtitle_encoders.contains(match.captured(1))) {
                 remove = true;
             }
         }
@@ -197,7 +201,7 @@ QString Presets::Private::getVersionAttribute(const QXmlStreamAttributes &attrs)
 {
     QString version;
     foreach (QXmlStreamAttribute attr, attrs) {
-        if (attr.name() == "version") {
+        if (attr.name() == QString("version")) {
             version = attr.value().toString();
             break;
         }

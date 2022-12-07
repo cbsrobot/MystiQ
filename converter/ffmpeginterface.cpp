@@ -19,7 +19,7 @@
 #include "mediaprobe.h"
 #include "exepath.h"
 #include <QDir>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QTextStream>
 #include <QDebug>
 #include <QFile>
@@ -91,7 +91,7 @@ namespace inner {
         QString encoders_str = s.mid(begin, length);
 
         // split encoder_str into encoder names and skip whitespaces
-        QStringList encoders = encoders_str.split(' ', QString::SkipEmptyParts);
+        QStringList encoders = encoders_str.split(' ', Qt::SkipEmptyParts);
         foreach (QString s, encoders) {
             target.push_back(s); // fill codec names into the list
         }
@@ -125,7 +125,7 @@ namespace inner {
         }
 
         // Find all available encoders
-        QRegExp pattern("[ D]E([ VAS])...\\s+([^ ]+)\\s*(.*)$");
+        QRegularExpression pattern("[ D]E([ VAS])...\\s+([^ ]+)\\s*(.*)$");
         QStringList encoder_list; // temporary storage of encoder names
         const int AV_INDEX = 1;
         const int CODEC_NAME_INDEX = 2;
@@ -136,10 +136,11 @@ namespace inner {
             QString line(ffmpeg_process.readLine());
             ffmpeg_codec_info.append(line);
 
-            if (pattern.indexIn(line) != -1) {
-                QString av = pattern.cap(AV_INDEX);
-                QString codec = pattern.cap(CODEC_NAME_INDEX);
-                QString desc = pattern.cap(CODEC_DESC);
+            auto match = pattern.match(line);
+            if (match.hasMatch()) {
+                QString av =  match.captured(AV_INDEX);
+                QString codec =  match.captured(CODEC_NAME_INDEX);
+                QString desc =  match.captured(CODEC_DESC);
 
                 // extract codec names
                 encoder_list.clear();
@@ -197,7 +198,7 @@ namespace inner {
         demuxing_formats.clear();
         ffmpeg_format_info.clear();
 
-        QRegExp pattern("^ ([ D])([ E]) ([^ ]+)\\s+(.*)$");
+        QRegularExpression pattern("^ ([ D])([ E]) ([^ ]+)\\s+(.*)$");
         const int INDEX_DEMUX = 1;
         const int INDEX_MUX = 2;
         const int INDEX_NAME = 3;
@@ -206,11 +207,12 @@ namespace inner {
         while (ffmpeg_process.canReadLine()) {
             QString line(ffmpeg_process.readLine());
             ffmpeg_format_info.append(line);
-            if (pattern.indexIn(line) != -1) {
-                QString name = pattern.cap(INDEX_NAME);
-                if (pattern.cap(INDEX_DEMUX) == "D")
+            auto match = pattern.match(line);
+            if (match.hasMatch()) {
+                QString name =  match.captured(INDEX_NAME);
+                if (match.captured(INDEX_DEMUX) == "D")
                     demuxing_formats.append(name);
-                if (pattern.cap(INDEX_MUX) == "E")
+                if (match.captured(INDEX_MUX) == "E")
                     muxing_formats.append(name);
             }
         }
@@ -257,10 +259,11 @@ namespace inner {
     // extract error message from the line
     QString extract_errmsg(const QString& line)
     {
-        QRegExp pattern("^[^:]*:(.*)$");
+        QRegularExpression pattern("^[^:]*:(.*)$");
         const int INDEX_MESSAGE = 1;
-        if (pattern.indexIn(line) != -1)
-            return pattern.cap(INDEX_MESSAGE).trimmed();
+        auto match = pattern.match(line);
+        if (match.hasMatch())
+            return match.captured(INDEX_MESSAGE).trimmed();
         else
             return "";
     }
@@ -283,9 +286,9 @@ struct FFmpegInterface::Private
     double duration;
     double progress;
     QString stringBuffer;
-    QRegExp progress_pattern;
-    QRegExp progress_pattern_2;
-    QRegExp duration_pattern;
+    QRegularExpression progress_pattern;
+    QRegularExpression progress_pattern_2;
+    QRegularExpression duration_pattern;
 
     bool encoders_read;
     bool __dummy_padding[7]; // Avoid internally padding of struct on RAM
@@ -311,21 +314,22 @@ struct FFmpegInterface::Private
 */
 bool FFmpegInterface::Private::check_progress(const QString& line)
 {
-    QRegExp& pattern = progress_pattern;
-    int index = pattern.indexIn(line);
-    if (index != -1) {
-        const double t = pattern.cap(patterns::PROG_1_TIME).toDouble();
+    QRegularExpression& pattern = progress_pattern;
+    auto match = pattern.match(line);
+    if (match.hasMatch()) {
+        const double t =  match.captured(patterns::PROG_1_TIME).toDouble();
 
         // calculate progress
         progress = (t / duration) * 100;
 
         return true;
     } else { // try another pattern
-        QRegExp& alternate_pattern = progress_pattern_2;
-        if (alternate_pattern.indexIn(line) != -1) {
-            const int hour = alternate_pattern.cap(patterns::PROG_2_HR).toInt();
-            const int min = alternate_pattern.cap(patterns::PROG_2_MIN).toInt();
-            const double sec = alternate_pattern.cap(patterns::PROG_2_SEC).toDouble();
+        QRegularExpression& pattern_alt = progress_pattern_2;
+        auto match_alt = pattern_alt.match(line);
+        if (match_alt.hasMatch()) {
+            const int hour = match_alt.captured(patterns::PROG_2_HR).toInt();
+            const int min = match_alt.captured(patterns::PROG_2_MIN).toInt();
+            const double sec = match_alt.captured(patterns::PROG_2_SEC).toDouble();
             const double t = hour*3600 + min*60 + sec;
 
             progress = (t / duration) * 100;
@@ -447,7 +451,7 @@ QStringList FFmpegInterface::Private::getOptionList(const ConversionParameters &
     /* ==== Additional Options ==== */
     if (!o.ffmpeg_options.isEmpty()) {
         QList<QString> additional_options =
-                o.ffmpeg_options.split(" ", QString::SkipEmptyParts);
+                o.ffmpeg_options.split(" ", Qt::SkipEmptyParts);
         foreach (QString opt, additional_options)
             list.append(opt);
     }
@@ -734,7 +738,7 @@ void FFmpegInterface::parseProcessOutput(const QString &data)
     //qDebug() << data;
 
     // split incoming data by [end of line] or [carriage return]
-    QStringList lines(data.split(QRegExp("[\r\n]"), QString::KeepEmptyParts));
+    QStringList lines(data.split(QRegularExpression("[\r\n]"), Qt::KeepEmptyParts));
 
     if (!p->stringBuffer.isEmpty()) { // prepend buffered data
         lines.front().prepend(p->stringBuffer);

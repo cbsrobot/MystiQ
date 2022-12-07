@@ -48,6 +48,8 @@
 #include <QPushButton>
 #include <QDebug>
 #include <QUrl>
+#include <QActionGroup>
+#include <QRegularExpression>
 
 MainWindow::MainWindow(QWidget *parent, const QStringList& fileList) :
     QMainWindow(parent),
@@ -765,9 +767,10 @@ void MainWindow::setup_appicon()
     QIcon icon;
     QDir iconDir = QDir(":/app/icons/");
     QStringList fileList = iconDir.entryList();
-    QRegExp pattern("^mystiq_[0-9]+x[0-9]+\\.png$");
+    QRegularExpression pattern("^mystiq_[0-9]+x[0-9]+\\.png$");
     foreach (QString file, fileList) {
-        if (pattern.indexIn(file) >= 0) {
+        auto match = pattern.match(file);
+        if (match.hasMatch()) {
             icon.addPixmap(QPixmap(iconDir.absoluteFilePath(file)));
         }
     }

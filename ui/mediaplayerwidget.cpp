@@ -19,6 +19,7 @@
 #include <QWheelEvent>
 #include <QMediaPlayer>
 #include <QVideoWidget>
+#include <QAudioOutput>
 
 #include "mediaplayerwidget.h"
 #include "ui_mediaplayerwidget.h"
@@ -57,14 +58,16 @@ MediaPlayerWidget::MediaPlayerWidget(QWidget *parent) :
 
     m_mediaPlayer = new QMediaPlayer(this);
     m_videoView = new QVideoWidget(this);
+    m_audioOutput = new QAudioOutput(this);
 
     ui->layoutPlayer->addWidget(m_videoView);
 
     m_mediaPlayer->setVideoOutput(m_videoView);
+    m_mediaPlayer->setAudioOutput(m_audioOutput);
 
     ui->slideSeek->setStyleSheet(SLIDER_STYLESHEET);
 
-    connect(m_mediaPlayer, &QMediaPlayer::stateChanged, [this] {
+    connect(m_mediaPlayer, &QMediaPlayer::playbackStateChanged, [this] {
         refreshTimeDisplay();
         refreshButtonState();
         emit stateChanged();
@@ -73,7 +76,7 @@ MediaPlayerWidget::MediaPlayerWidget(QWidget *parent) :
     connect(m_mediaPlayer, &QMediaPlayer::positionChanged, [this] {
         if (m_playUntil > 0
             && m_mediaPlayer->position() >= m_playUntil * 1000
-            && m_mediaPlayer->state() != QMediaPlayer::PausedState)
+            && m_mediaPlayer->playbackState() != QMediaPlayer::PausedState)
         {
             pause();
 
@@ -105,7 +108,7 @@ MediaPlayerWidget::MediaPlayerWidget(QWidget *parent) :
     });
 
     connect(m_mediaPlayer, &QMediaPlayer::mediaStatusChanged, [this] (QMediaPlayer::MediaStatus status) {
-        if (status != QMediaPlayer::InvalidMedia && status != QMediaPlayer::LoadingMedia && status != QMediaPlayer::UnknownMediaStatus )
+        if (status != QMediaPlayer::InvalidMedia && status != QMediaPlayer::LoadingMedia )
         {
             m_mediaPlayer->setPosition(m_beginSec * 1000);
 
@@ -157,10 +160,10 @@ void MediaPlayerWidget::load(const QString &url, qint64 begin, qint64 end)
 
     update_limits();
 
-    m_mediaPlayer->setMedia(QUrl::fromLocalFile(url));
+    m_mediaPlayer->setSource(QUrl::fromLocalFile(url));
 
     ui->slideVolume->setValue(m_volume);
-    m_mediaPlayer->setVolume(m_volume);
+    m_audioOutput->setVolume(m_volume);
 }
 
 void MediaPlayerWidget::reload()
@@ -177,7 +180,7 @@ void MediaPlayerWidget::play()
 
 void MediaPlayerWidget::playRange(int begin_sec, int end_sec)
 {
-    if (m_mediaPlayer->state() != QMediaPlayer::PlayingState)
+    if (m_mediaPlayer->playbackState() != QMediaPlayer::PlayingState)
     {
         reload();
     }
@@ -221,7 +224,7 @@ void MediaPlayerWidget::seek_and_pause(qint64 sec)
 
 void MediaPlayerWidget::togglePlayPause()
 {
-    switch (m_mediaPlayer->state()) {
+    switch (m_mediaPlayer->playbackState()) {
     case QMediaPlayer::StoppedState:
         reload();
 
@@ -246,13 +249,11 @@ void MediaPlayerWidget::togglePlayPause()
 
 void MediaPlayerWidget::wheelEvent(QWheelEvent *event)
 {
-    int numDegrees = event->delta() / 8; // delta is in eighths of a degree
-    if (event->orientation() == Qt::Vertical) {
-        if (numDegrees >= 0) {
-            seekForward();
-        } else {
-            seekBackward();
-        }
+    int numDegrees = event->angleDelta().y() / 8; // delta is in eighths of a degree
+    if (numDegrees >= 0) {
+        seekForward();
+    } else {
+        seekBackward();
     }
 }
 
@@ -289,7 +290,7 @@ void MediaPlayerWidget::refreshTimeDisplay()
 void MediaPlayerWidget::refreshButtonState()
 {
     QString button_icon =
-            m_mediaPlayer->state() == QMediaPlayer::PlayingState ?
+            m_mediaPlayer->playbackState() == QMediaPlayer::PlayingState ?
                 ":/actions/icons/pause.svg" :
                 ":/actions/icons/play.svg";
 
@@ -384,5 +385,5 @@ void MediaPlayerWidget::on_slideVolume_valueChanged(int value)
                                                QAudio::LogarithmicVolumeScale,
                                                QAudio::LinearVolumeScale);
 
-    m_mediaPlayer->setVolume(qRound(linearVolume * 100));
+    m_audioOutput->setVolume(qRound(linearVolume * 100));
 }

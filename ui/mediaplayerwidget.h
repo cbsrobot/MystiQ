@@ -20,6 +20,7 @@
 
 #include <QWidget>
 
+class QAudioOutput;
 class QVideoWidget;
 class QMediaPlayer;
 
@@ -115,6 +116,7 @@ private:
 
     QMediaPlayer *m_mediaPlayer;
     QVideoWidget *m_videoView;
+    QAudioOutput *m_audioOutput;
 
     QString m_file;
 

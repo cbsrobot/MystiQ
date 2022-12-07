@@ -86,7 +86,7 @@ struct MetaInformation
     double start; ///< start time in seconds
     int bitrate; ///< bitrate in kb/s
     bool __dummy_padding[4];
-    QRegExp pattern;
+    QRegularExpression pattern;
 
     MetaInformation() : pattern(patterns::meta) { clear(); }
 
@@ -94,14 +94,14 @@ struct MetaInformation
 
     bool parse(const QString& line)
     {
-        int index = pattern.indexIn(line);
-        if (index != -1) {
-            int hour = pattern.cap(patterns::META_HOUR_INDEX).toInt();
-            int minute = pattern.cap(patterns::META_MINUTE_INDEX).toInt();
-            double second = pattern.cap(patterns::META_SECOND_INDEX).toDouble();
+        auto match = pattern.match(line);
+        if (match.hasMatch()) {
+            int hour =  match.captured(patterns::META_HOUR_INDEX).toInt();
+            int minute =  match.captured(patterns::META_MINUTE_INDEX).toInt();
+            double second =  match.captured(patterns::META_SECOND_INDEX).toDouble();
             duration = hour * SECONDS_PER_HOUR + minute * SECONDS_PER_MINUTE + second;
-            start = pattern.cap(patterns::META_START_INDEX).toDouble();
-            bitrate = pattern.cap(patterns::META_BITRATE_INDEX).toInt();
+            start =  match.captured(patterns::META_START_INDEX).toDouble();
+            bitrate =  match.captured(patterns::META_BITRATE_INDEX).toInt();
             return true;
         }
         return false;
@@ -117,8 +117,8 @@ struct AudioInformation
     int bitrate; ///< bitrate in kb/s
     int channels; ///< number of channels
     QString codec;
-    QRegExp pattern;
-    QRegExp pattern_check;
+    QRegularExpression pattern;
+    QRegularExpression pattern_check;
 
     AudioInformation() : pattern(patterns::audio)
       , pattern_check(patterns::audio_check) { clear(); }
@@ -134,18 +134,19 @@ struct AudioInformation
 
     bool parse(const QString& line)
     {
-        int index = pattern.indexIn(line);
-        if (index != -1) {
+        auto match = pattern.match(line);
+        if (match.hasMatch()) {
             has_audio = true;
-            codec = pattern.cap(patterns::AUDIO_CODEC_INDEX);
-            sample_rate = pattern.cap(patterns::AUDIO_SAMPLERATE_INDEX).toInt();
-            bitrate = pattern.cap(patterns::AUDIO_BITRATE_INDEX).toInt();
+            codec =  match.captured(patterns::AUDIO_CODEC_INDEX);
+            sample_rate =  match.captured(patterns::AUDIO_SAMPLERATE_INDEX).toInt();
+            bitrate =  match.captured(patterns::AUDIO_BITRATE_INDEX).toInt();
 
             // extract number of channels
-            QString channels_field = pattern.cap(patterns::AUDIO_CHANNELS_INDEX);
-            QRegExp channels_pattern("([0-9]+)\\s+channel");
-            if (channels_pattern.indexIn(channels_field) != -1) {
-                channels = channels_pattern.cap(1).toInt();
+            QString channels_field =  match.captured(patterns::AUDIO_CHANNELS_INDEX);
+            QRegularExpression channels_pattern("([0-9]+)\\s+channel");
+            auto match_channels = channels_pattern.match(channels_field);
+            if (match_channels.hasMatch()) {
+                channels = match_channels.captured(1).toInt();
             } else if (channels_field.indexOf("stereo") != -1) {
                 channels = 2;
             } else if (channels_field.indexOf("mono") != -1) {
@@ -155,7 +156,8 @@ struct AudioInformation
             return true;
         }
         // audio existence must be correct
-        if (pattern_check.indexIn(line) != -1) {
+        auto match_check = pattern_check.match(line);
+        if (match_check.hasMatch()) {
             has_audio = true;
             codec = "unknown";
         }
@@ -176,8 +178,8 @@ struct VideoInformation
     double frame_rate; ///< frame rate in fps
     QString codec;
     QString format;
-    QRegExp pattern;
-    QRegExp pattern_check;
+    QRegularExpression pattern;
+    QRegularExpression pattern_check;
 
     VideoInformation() : pattern(patterns::video)
       , pattern_check(patterns::video_check) { clear(); }
@@ -195,19 +197,20 @@ struct VideoInformation
 
     bool parse(const QString& line)
     {
-        int index = pattern.indexIn(line);
-        if (index != -1) {
+        auto match = pattern.match(line);
+        if (match.hasMatch()) {
             has_video = true;
-            stream_index = pattern.cap(patterns::VIDEO_STREAM_INDEX).toInt();
-            width = pattern.cap(patterns::VIDEO_WIDTH_INDEX).toInt();
-            height = pattern.cap(patterns::VIDEO_HEIGHT_INDEX).toInt();
-            bitrate = pattern.cap(patterns::VIDEO_BITRATE_INDEX).toInt();
-            frame_rate = pattern.cap(patterns::VIDEO_FRAMERATE_INDEX).toDouble();
-            codec = pattern.cap(patterns::VIDEO_CODEC_INDEX);
+            stream_index =  match.captured(patterns::VIDEO_STREAM_INDEX).toInt();
+            width =  match.captured(patterns::VIDEO_WIDTH_INDEX).toInt();
+            height =  match.captured(patterns::VIDEO_HEIGHT_INDEX).toInt();
+            bitrate =  match.captured(patterns::VIDEO_BITRATE_INDEX).toInt();
+            frame_rate =  match.captured(patterns::VIDEO_FRAMERATE_INDEX).toDouble();
+            codec =  match.captured(patterns::VIDEO_CODEC_INDEX);
             return true;
         }
         // video existence must be correct
-        if (pattern_check.indexIn(line) != -1) {
+        auto match_check = pattern_check.match(line);
+        if (match_check.hasMatch()) {
             has_video = true;
             codec = "unknown";
         }
@@ -220,15 +223,15 @@ struct SubtitleInformation
 {
     bool has_subtitle;
     bool __dummy_padding[7];
-    QRegExp pattern;
+    QRegularExpression pattern;
 
     SubtitleInformation() : pattern(patterns::subtitle) { }
 
     void clear() { has_subtitle = false; }
     bool parse(const QString& line)
     {
-        int index = pattern.indexIn(line);
-        if (index != -1) {
+        auto match = pattern.match(line);
+        if (match.hasMatch()) {
             has_subtitle = true;
         }
         return false; // reject all inputs
